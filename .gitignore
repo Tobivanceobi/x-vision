@@ -6,6 +6,10 @@ __pycache__/
 # data
 data/
 
+# pytorch
+*.pth
+*.pt
+
 # C extensions
 *.so
 
