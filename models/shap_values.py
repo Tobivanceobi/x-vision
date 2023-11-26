@@ -1,4 +1,5 @@
 import os.path
+import pickle
 
 import numpy as np
 import shap
@@ -18,13 +19,11 @@ from models.resnet50.model import XRayResNet50
 # confusion matrix, precision recall curve
 # train test split 70 15 15
 
-CURR_MODEL = "resnet50"
+CURR_MODEL = "resnet18"
 MODEL_PATH = CURR_MODEL + "/cache/" + CURR_MODEL + ".pth"
-# resnet18 MODEL_PARAMS = [128, 6, 5, 0.00011038211496918009, 5.916018460561741e-05, 0.3952291290587717, 256, 256, 1]
-MODEL_PARAMS = [32, 5, 6, 0.00015, 0.000489, 0.7, 64, 256, 0]
+MODEL_PARAMS = [128, 6, 5, 0.00011038211496918009, 5.916018460561741e-05, 0.3952291290587717, 256, 256, 1]
+# MODEL_PARAMS = [32, 5, 6, 0.00015, 0.000489, 0.7, 64, 256, 0]
 batch_size, freez_ep, unfreez_ep, lr_1, lr_2, dropout_head, hl1, hl2, num_hl = MODEL_PARAMS
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 if os.path.isfile(MODEL_PATH):
     print("Found pretrained model in cache")
@@ -42,7 +41,7 @@ else:
         pt_model=CURR_MODEL,
         return_model=True)
     torch.save(model.state_dict(), MODEL_PATH)
-
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = model.to(device)
 
 transform = transforms.Compose([
@@ -97,7 +96,7 @@ Y = Y[sorted_idx]
 Y_preds_class = Y_preds_class[sorted_idx]
 accuracies = accuracies[sorted_idx]
 
-X_sample_idx = [idx for l in [0, 1, 2] for idx in np.where(Y == l)[0][-6:]]
+X_sample_idx = [idx for l in [0, 1] for idx in np.where(Y == l)[0][-300:]]
 
 X_sample = np.array(X_processed[X_sample_idx])
 Y_sample = np.array(Y[X_sample_idx])
@@ -125,15 +124,26 @@ def f(x):
     return output.cpu().numpy()
 
 
-masker = shap.maskers.Image("blur(128,128)", X_processed[0].shape)
+masker = shap.maskers.Image("blur(224,224)", X_processed[0].shape)
 
 class_names = val_dataset.classes
 explainer = shap.Explainer(f, masker, output_names=class_names)
 
-shap_values = explainer(X_sample[:-1], max_evals=5000, batch_size=50, outputs=shap.Explanation.argsort.flip[:3])
+if os.path.isfile("resnet50_shapvals_200.pickle"):
+    with open("resnet50_shapvals_200.pickle", 'rb') as file:
+        obj = pickle.load(file)
+        shap_values = obj['shap_vals']
+else:
+    shap_values = explainer(X_sample[:-1], max_evals=10000, batch_size=256)
+    my_object = {
+        'shap_vals': shap_values,
+        'X_idxs': X_sample_idx
+    }
+    with open("resnet50_shapvals_200.pickle", 'wb') as file:
+        pickle.dump(my_object, file)
 
-for i in range(len(shap_values)):
-    shap.image_plot(shap_values[i])
+for i in range(len(shap_values[-10:])):
+    shap.image_plot(shap_values[i], -X_sample[i])
     print(Y_sample_preds[i])
 
 # e = shap.DeepExplainer(model, background)

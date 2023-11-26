@@ -21,7 +21,7 @@ class XRayResNet18(nn.Module):
         else:
             self.hidden_layers = [num_features, hl1, hl2]
 
-        self.model.fc = self.build_classification_head(num_features, 3, dropout_head)
+        self.model.fc = self.build_classification_head(num_features, 2, dropout_head)
 
     def build_classification_head(self, input_size, output_size, dropout):
         layers = []

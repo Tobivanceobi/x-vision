@@ -11,7 +11,7 @@ from models.resnet50.model import XRayResNet50
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def get_kermany_dataset(bs):
+def get_kermany_dataset():
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
@@ -20,15 +20,18 @@ def get_kermany_dataset(bs):
     train_dataset = KermanyXRayImageFolder('../data/train', transform=transform)
     test_dataset = KermanyXRayImageFolder('../data/test', transform=transform)
 
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=int(bs), shuffle=True)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=int(bs), shuffle=False)
-    return train_loader, test_loader
+
+    return train_dataset, test_dataset
+
+
+train_dataset, test_dataset = get_kermany_dataset()
 
 
 def step_train_model(params, pt_model, return_model=False):
     batch_size, freez_ep, unfreez_ep, lr_1, lr_2, dropout_head, hl1, hl2, num_hl = params
 
-    train_loader, test_loader = get_kermany_dataset(batch_size)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=int(batch_size), shuffle=True)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=int(batch_size), shuffle=False)
 
     print("Batch Size: ", batch_size)
     print("Epochs Freez: ", freez_ep)
