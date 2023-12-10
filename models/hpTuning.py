@@ -4,7 +4,7 @@ import torch
 from skopt import gp_minimize
 from skopt.space import Real, Integer, Categorical
 
-from models.helper.training import step_train_model
+from models.helper.training import step_train_model, get_kermany_dataset
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -40,7 +40,8 @@ if __name__ == "__main__":
     score, model = step_train_model(
         res.x,
         pt_model=CURR_MODEL,
-        return_model=True)
+        return_model=True
+    )
     torch.save(model.state_dict(), f'./{CURR_MODEL}/cache/resnet18.pth')
 
     print(f"Best parameters: {res.x}")

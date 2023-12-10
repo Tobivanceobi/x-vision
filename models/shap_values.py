@@ -1,6 +1,5 @@
 import os.path
 import pickle
-
 import numpy as np
 import shap
 import torch
@@ -9,7 +8,8 @@ from torchvision.transforms import transforms
 
 from models.helper.dataLoader import KermanyXRayImageFolder
 from models.helper.eval import eval_model
-from models.helper.training import step_train_model
+
+
 from models.resnet18.model import XRayResNet18
 from models.resnet50.model import XRayResNet50
 
@@ -34,6 +34,7 @@ if os.path.isfile(MODEL_PATH):
         model = XRayResNet50(hl1, hl2, num_hl, dropout_head)
     model.load_state_dict(torch.load(MODEL_PATH))
 else:
+    from models.helper.training import step_train_model
     print("No pretrained model in cache found")
     print("")
     score, model = step_train_model(
@@ -75,6 +76,7 @@ model.eval()
 Y_preds = []
 Y_preds_class = []
 val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=int(128), shuffle=True)
+
 with torch.no_grad():
     for data, target, _ in val_loader:
         data, target = data.to(device), target.to(device)
@@ -96,7 +98,7 @@ Y = Y[sorted_idx]
 Y_preds_class = Y_preds_class[sorted_idx]
 accuracies = accuracies[sorted_idx]
 
-X_sample_idx = [idx for l in [0, 1] for idx in np.where(Y == l)[0][-300:]]
+X_sample_idx = [idx for l in [0, 1] for idx in np.where(Y == l)[0][-10:]]
 
 X_sample = np.array(X_processed[X_sample_idx])
 Y_sample = np.array(Y[X_sample_idx])
@@ -124,27 +126,29 @@ def f(x):
     return output.cpu().numpy()
 
 
-masker = shap.maskers.Image("blur(224,224)", X_processed[0].shape)
+masker = shap.maskers.Image("inpaint_ns", X_processed[0].shape)
 
 class_names = val_dataset.classes
 explainer = shap.Explainer(f, masker, output_names=class_names)
 
-if os.path.isfile("resnet50_shapvals_200.pickle"):
-    with open("resnet50_shapvals_200.pickle", 'rb') as file:
+if os.path.isfile("resnet18_shapvals_100.pickle"):
+    with open("resnet18_shapvals_100.pickle", 'rb') as file:
         obj = pickle.load(file)
         shap_values = obj['shap_vals']
 else:
-    shap_values = explainer(X_sample[:-1], max_evals=10000, batch_size=256)
+    shap_values = explainer(X_sample[:-1], max_evals=200, batch_size=256)
     my_object = {
         'shap_vals': shap_values,
         'X_idxs': X_sample_idx
     }
-    with open("resnet50_shapvals_200.pickle", 'wb') as file:
+    with open("resnet50/resnet18_shapvals_100.pickle", 'wb') as file:
         pickle.dump(my_object, file)
 
-for i in range(len(shap_values[-10:])):
+for i in range(len(shap_values)):
+    print("True Lable: " + val_dataset.classes[Y_sample[i]])
+    print("Prediction: " + val_dataset.classes[Y_sample_preds[i]])
     shap.image_plot(shap_values[i], -X_sample[i])
-    print(Y_sample_preds[i])
+
 
 # e = shap.DeepExplainer(model, background)
 # shap_values = e.shap_values(test_images, check_additivity=False)

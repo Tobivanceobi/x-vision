@@ -15,13 +15,13 @@ def get_kermany_dataset():
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
-    train_dataset = KermanyXRayImageFolder('../data/train', transform=transform)
-    test_dataset = KermanyXRayImageFolder('../data/test', transform=transform)
+    train_set = KermanyXRayImageFolder('../data/train', transform=transform)
+    test_set = KermanyXRayImageFolder('../data/test', transform=transform)
 
-
-    return train_dataset, test_dataset
+    return train_set, test_set
 
 
 train_dataset, test_dataset = get_kermany_dataset()

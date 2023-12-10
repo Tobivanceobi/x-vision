@@ -55,8 +55,8 @@ def plot_images_in_grid(images, rows=3, cols=3):
     plt.show()
 
 
-folder = 'data/test/PNEUMONIA'
+folder = 'data/test/NORMAL'
 images = load_images_from_folder(folder, num_images=50, target_size=(224, 224))
 aligned_images = align_images(images)
-plot_images_in_grid(aligned_images, rows=3, cols=3)
+plot_images_in_grid(aligned_images[:-9], rows=3, cols=3)
 plot_images_in_grid(images, rows=3, cols=3)
